@@ -1,0 +1,16 @@
+[package]
+name = "random-img-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]  
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+axum = {version = "0.8.3", features = ["macros"]}
+thiserror = "2.0.12"
+rand = { version = "0.9.0", features = ["thread_rng"]}
+tokio-util = {version = "0.7.14", features = ["io"]}
+tower-http = { version = "0.6.2", features = ["follow-redirect"] }
+
+[profile.release]
+opt-level = 3
