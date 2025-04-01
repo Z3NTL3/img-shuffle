@@ -12,7 +12,7 @@ use tokio::sync::{mpsc, Mutex};
 // Ensuring everything works pretty solid and fast.
 //
 // Aside from those facts using Broadcast would've required us to implement clone on some sort of body as it propogates the same data by cloning the value
-// to multiple consumers, also inheriting more memory consumption.
+// to multiple consumers, also leading to increased memory consumption.
 //
 // But we didn't want that. Because when the handler runs in parallel with several clients, they all would see the same random image.
 //
