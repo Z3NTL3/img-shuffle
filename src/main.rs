@@ -13,13 +13,12 @@ async fn random_image(State(receiver): State<Arc<Mutex<mpsc::Receiver<Body>>>>) 
         .header("Cache-Control", "must-revalidate");
 
     let mut data = receiver.lock().await;
-    match data.recv().await {
-        Some(image) => {
-            println!("took: {:?}", bench.elapsed());
-            Ok(res.body(image)?)
-        },
-        None => Err(AppError::SomeError { msg: "unfortunately, failed sampling an image".into() })
-    }
+    let Some(body) = data.recv().await else {
+        return Err(AppError::SomeError { msg: "unfortunately, failed sampling an image".into() });
+    };
+
+    println!("took: {:?}", bench.elapsed());
+    Ok(res.body(body)?)
 }
 
 async fn worker(sender: mpsc::Sender<Body>, images: Vec<String>) {
