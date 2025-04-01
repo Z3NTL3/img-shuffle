@@ -6,7 +6,7 @@ use tokio_util::io::ReaderStream;
 use tokio::sync::{mpsc, Mutex};
 
 // Arc<Mutex<Receiver<T>>> is needed because a mpsc channel can have one receiver. By using Arc we share ownership.
-// An Async Mutex is needed due to the primitives of Arc enforcing us otherwise taking &mut self would've failed on line 17.
+// An Async Mutex is needed due to the primitives of Arc enforcing us otherwise taking &mut self would've failed on line 24.
 //
 // Async Mutexes are not blocking by literal meaning, as recv().await yields back control to the async runtime until the task can be resumed
 // Ensuring everything works pretty solid and fast.
