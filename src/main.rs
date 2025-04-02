@@ -1,9 +1,12 @@
 use std::{sync::Arc, time};
-use axum::{body::Body, debug_handler, extract::State, response::Response, Router};
+use axum::{body::Body, debug_handler, extract::State, response::Response, routing::get, Router};
 use errors::AppError;
 use rand::prelude::*;
 use tokio_util::io::ReaderStream;
 use tokio::sync::{mpsc, Mutex};
+use tower_http::{classify::StatusInRangeAsFailures, trace::TraceLayer};
+use tracing::{info_span, Level};
+use tracing_subscriber::fmt::time::ChronoLocal;
 
 // Arc<Mutex<Receiver<T>>> is needed because a mpsc channel can have one receiver. By using Arc we share ownership.
 // An Async Mutex is needed due to the primitives of Arc enforcing us otherwise taking &mut self would've failed on line 24.
@@ -19,6 +22,9 @@ use tokio::sync::{mpsc, Mutex};
 // For those reasons the current way of handling the situation seems like one of the proper fits for the task
 #[debug_handler]
 async fn random_image(State(receiver): State<Arc<Mutex<mpsc::Receiver<Body>>>>) -> Result<Response<Body>, errors::AppError> {    
+    let span = tracing::info_span!(target: "request", "handler_random_image");
+    let _enter= span.enter();
+
     let bench = time::Instant::now();
     let res = Response::builder()
         .header("Cache-Control", "must-revalidate");
@@ -28,7 +34,7 @@ async fn random_image(State(receiver): State<Arc<Mutex<mpsc::Receiver<Body>>>>) 
         return Err(AppError::SomeError { msg: "unfortunately, failed sampling an image".into() });
     };
 
-    println!("took: {:?}", bench.elapsed());
+    tracing::info!("sampling img took: {:?}", bench.elapsed());
     Ok(res.body(body)?)
 }
 
@@ -50,7 +56,7 @@ async fn worker(sender: mpsc::Sender<Body>, images: Vec<String>) {
 mod errors {
     use std::ffi::OsString;
 
-    use axum::{http, response::IntoResponse};
+    use axum::{http::{self, StatusCode}, response::IntoResponse};
     use serde::Serialize;
     use thiserror::Error;
 
@@ -62,7 +68,7 @@ mod errors {
 
     impl IntoResponse for AppError {
         fn into_response(self) -> axum::response::Response {
-            axum::Json::from(self).into_response()
+            (StatusCode::BAD_REQUEST, axum::Json::from(self)).into_response()
         }
     }
 
@@ -90,6 +96,11 @@ mod errors {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_timer(ChronoLocal::new("%v [%T]".into()))
+        .with_max_level(Level::INFO)
+        .init();
+    
     let mut images: Vec<String> = vec![];
     let wdir = std::env::current_dir()
         .map(|dir| dir.join("images"));
@@ -113,9 +124,25 @@ async fn main() {
         });
     }
 
+    let state = Arc::new(Mutex::new(receiver));   
     let app = Router::new()
-        .fallback(random_image)
-        .with_state(Arc::new(Mutex::new(receiver)));        
+        .route("/", get(random_image))
+        .layer( TraceLayer::new(StatusInRangeAsFailures::new(400..=599).into_make_classifier())
+            .make_span_with(|request: &axum::http::Request<_>| {
+                let matched_path = request
+                    .extensions()
+                    .get::<axum::extract::MatchedPath>()
+                    .map(axum::extract::MatchedPath::as_str);
+
+                info_span!(
+                    "request",
+                    method = ?request.method(),
+                    path = matched_path
+                )
+            })
+        )
+        .fallback(axum::response::Redirect::to("/"))
+        .with_state(state);        
     let listener = tokio::net::TcpListener::bind("0.0.0.0:2000")
         .await
         .unwrap();
