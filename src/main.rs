@@ -143,11 +143,8 @@ async fn main() {
         )
         .fallback(axum::response::Redirect::to("/"))
         .with_state(state);        
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:2000")
-        .await
-        .unwrap();
-
-    axum::serve(listener, app)
+    
+    axum::serve(tokio::net::TcpListener::bind("0.0.0.0:2000").await.unwrap(), app)
         .await
         .unwrap();
 }
