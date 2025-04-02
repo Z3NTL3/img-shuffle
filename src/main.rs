@@ -127,7 +127,7 @@ async fn main() {
     let state = Arc::new(Mutex::new(receiver));   
     let app = Router::new()
         .route("/", get(random_image))
-        .layer( TraceLayer::new(StatusInRangeAsFailures::new(400..=599).into_make_classifier())
+        .layer(TraceLayer::new(StatusInRangeAsFailures::new(400..=599).into_make_classifier())
             .make_span_with(|request: &axum::http::Request<_>| {
                 let matched_path = request
                     .extensions()
