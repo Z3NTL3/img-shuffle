@@ -21,7 +21,7 @@ where
     type Rejection = errors::AppError;
 
     fn from_request_parts(parts: &mut Parts, _: &S) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        async {
+        async move {
             let Some(path) = parts.uri.query() else {
                 return Err(errors::AppError::SomeError { msg: "failed parsing query".into() })
             };
