@@ -6,16 +6,17 @@ edition = "2021"
 [dependencies]  
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
-axum = {version = "0.8.3", features = ["macros"]}
-thiserror = "2.0.12"
+axum = {version = "0.8.3", features = ["macros", "query"]}
+thiserror = {version = "2.0.12", features = ["std"]}
 rand = { version = "0.9.0", features = ["thread_rng"]}
 tokio-util = {version = "0.7.14", features = ["io"]}
-tower-http = { version = "0.6.2", features = ["trace"]}
-tracing = "0.1"
-tracing-subscriber = {version = "0.3", features = ["fmt", "std", "chrono", "env-filter"]}
-tower = "0.5.2"
+tower-http = { version = "0.6.2", features = ["trace"] }
+tracing-subscriber = { version = "0.3", features = ["fmt", "std", "chrono"]}
+tracing = { version = "0.1" }
+validator = { version = "0.20", features = ["derive"] }
+url = "2.5.4"
+reqwest = { version = "0.12.15", features = ["stream", "json"] }
+dotenvy = "0.15.7"
 
 [profile.release]
 opt-level = 3
-codegen-units = 1
-lto = "fat"
